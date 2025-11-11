@@ -1,0 +1,74 @@
+services:
+  laravel.test:
+    build:
+      context: ./vendor/laravel/sail/runtimes/8.2
+      dockerfile: Dockerfile
+      args:
+        WWWGROUP: '1000'
+    image: bff-unificado-sail-8.2/app
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '8000:80'
+    depends_on:
+      - mysql
+      - core
+    environment:
+      WWWUSER: '1000'
+      LARAVEL_SAIL: 1
+      XDEBUG_MODE: '${SAIL_XDEBUG_MODE:-off}'
+      XDEBUG_CONFIG: '${SAIL_XDEBUG_CONFIG:-client_host=host.docker.internal}'
+      IGNITION_LOCAL_SITES_PATH: '${PWD}'
+      CORE_BACKEND_URL: 'http://core:8080'
+      DB_CONNECTION: 'mysql'
+      DB_HOST: 'mysql'
+      DB_PORT: '3306'
+      DB_DATABASE: 'bff_unificado'
+      DB_USERNAME: 'sail'
+      DB_PASSWORD: 'password'
+    volumes:
+      - '.:/var/www/html'
+    networks:
+      - sail
+  mysql:
+    image: 'mysql/mysql-server:8.0'
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: 'password'
+      MYSQL_ROOT_HOST: "%"
+      MYSQL_DATABASE: 'bff_unificado'
+      MYSQL_USER: 'sail'
+      MYSQL_PASSWORD: 'password'
+      MYSQL_ALLOW_EMPTY_PASSWORD: 1
+    volumes:
+      - 'sail-mysql:/var/lib/mysql'
+      - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
+    networks:
+      - sail
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-ppassword"]
+      retries: 3
+      timeout: 5s
+  core:
+    image: 'eclipse-temurin:21-jre'
+    working_dir: /app
+    command: ["java", "-jar", "/var/www/html/ProjetoAlanBack/core-backend/target/core-backend-1.0.0-SNAPSHOT.jar"]
+    environment:
+      SPRING_DATASOURCE_URL: 'jdbc:mysql://mysql:3306/bff_unificado?useSSL=false&serverTimezone=UTC'
+      SPRING_DATASOURCE_USERNAME: 'sail'
+      SPRING_DATASOURCE_PASSWORD: 'password'
+      SERVER_PORT: '8080'
+      JAVA_OPTS: ''
+    volumes:
+      - '.:/var/www/html'
+    depends_on:
+      - mysql
+    networks:
+      - sail
+networks:
+  sail:
+    driver: bridge
+volumes:
+  sail-mysql:
+    driver: local
