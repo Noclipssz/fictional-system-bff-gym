@@ -321,17 +321,139 @@ class CoreBackendClient
                 ->timeout(10)
                 ->retry(2, 200)
                 ->post("{$this->baseUrl}/api/pagamentos", $dados);
-            
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? null;
             }
-            
+
             Log::warning("Falha ao registrar pagamento: {$response->status()}");
             return null;
         } catch (\Exception $e) {
             Log::error("Erro ao registrar pagamento: {$e->getMessage()}");
             return null;
+        }
+    }
+
+    /**
+     * Registrar usuário no core backend
+     */
+    public function registrarUsuario(array $dados): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->retry(2, 200)
+                ->post("{$this->baseUrl}/api/auth/register", $dados);
+
+            Log::info('CoreBackendClient::registrarUsuario response', [
+                'status' => $response->status(),
+                'body_snippet' => substr($response->body(), 0, 200),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? $data;
+            }
+
+            Log::warning("Falha ao registrar usuário: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao registrar usuário: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Autenticar usuário no core backend
+     */
+    public function autenticarUsuario(string $email, string $password): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->retry(2, 200)
+                ->post("{$this->baseUrl}/api/auth/login", [
+                    'email' => $email,
+                    'password' => $password,
+                ]);
+
+            Log::info('CoreBackendClient::autenticarUsuario response', [
+                'email' => $email,
+                'status' => $response->status(),
+                'body_snippet' => substr($response->body(), 0, 200),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? $data;
+            }
+
+            Log::warning("Falha ao autenticar usuário: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao autenticar usuário: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Validar token no core backend
+     */
+    public function validarToken(string $token): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->retry(2, 200)
+                ->get("{$this->baseUrl}/api/auth/me");
+
+            Log::info('CoreBackendClient::validarToken response', [
+                'status' => $response->status(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? $data;
+            }
+
+            Log::warning("Falha ao validar token: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao validar token: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Fazer logout no core backend
+     */
+    public function logoutUsuario(string $token): bool
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->retry(2, 200)
+                ->post("{$this->baseUrl}/api/auth/logout");
+
+            Log::info('CoreBackendClient::logoutUsuario response', [
+                'status' => $response->status(),
+            ]);
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error("Erro ao fazer logout: {$e->getMessage()}");
+            return false;
         }
     }
 }
