@@ -19,13 +19,17 @@ class ClientesController extends Controller
     /**
      * Listar todos os clientes
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $clientes = $this->coreBackendClient->listarClientes();
+        // Obter token do header Authorization
+        $token = $request->bearerToken();
+
+        $clientes = $this->coreBackendClient->listarClientes($token);
 
         Log::info('BFF ClientesController@index', [
             'core_base_url' => config('services.core_backend.url'),
             'clientes_count' => is_array($clientes) ? count($clientes) : null,
+            'has_token' => !empty($token),
         ]);
 
         $payload = [
@@ -34,12 +38,12 @@ class ClientesController extends Controller
             'message' => 'Lista de clientes obtida com sucesso',
         ];
 
-        if (app()->environment('local') && request()->boolean('debug', false)) {
+        if (app()->environment('local') && $request->boolean('debug', false)) {
             $payload['debug'] = [
                 'core_base_url' => config('services.core_backend.url'),
                 'count' => is_array($clientes) ? count($clientes) : null,
             ];
-            if (request()->query('debug') === '2') {
+            if ($request->query('debug') === '2') {
                 $testUrl = rtrim(config('services.core_backend.url'), '/') . '/api/clientes';
                 $stream = @file_get_contents($testUrl);
                 $payload['debug']['stream_status'] = $stream !== false ? 'ok' : 'fail';
@@ -53,9 +57,12 @@ class ClientesController extends Controller
     /**
      * Buscar cliente por ID
      */
-    public function show(int $id): JsonResponse
+    public function show(Request $request, int $id): JsonResponse
     {
-        $cliente = $this->coreBackendClient->getCliente($id);
+        // Obter token do header Authorization
+        $token = $request->bearerToken();
+
+        $cliente = $this->coreBackendClient->getCliente($id, $token);
 
         if (!$cliente) {
             return response()->json([
@@ -87,7 +94,10 @@ class ClientesController extends Controller
             'avatarDataUrl' => 'nullable|string',
         ]);
 
-        $cliente = $this->coreBackendClient->criarCliente($validated);
+        // Obter token do header Authorization
+        $token = $request->bearerToken();
+
+        $cliente = $this->coreBackendClient->criarCliente($validated, $token);
 
         if (!$cliente) {
             return response()->json([
@@ -120,7 +130,10 @@ class ClientesController extends Controller
             'avatarDataUrl' => 'nullable|string',
         ]);
 
-        $cliente = $this->coreBackendClient->atualizarCliente($id, $validated);
+        // Obter token do header Authorization
+        $token = $request->bearerToken();
+
+        $cliente = $this->coreBackendClient->atualizarCliente($id, $validated, $token);
 
         if (!$cliente) {
             return response()->json([

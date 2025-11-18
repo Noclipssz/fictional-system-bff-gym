@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BffAuthController;
 use App\Http\Controllers\ClientesController;
 use App\Http\Controllers\TreinosController;
 use App\Http\Controllers\PagamentosController;
 use App\Http\Controllers\PerfilController;
+use App\Http\Controllers\FrequenciaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -21,7 +23,8 @@ use Illuminate\Support\Facades\Route;
 
 // Rotas do BFF Unificado
 
-// Autenticação
+// Autenticação (antiga - mantida para compatibilidade, mas não recomendada)
+// NOTA: Use as rotas /bff/auth/* que fazem proxy correto para o backend
 Route::prefix('/auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
@@ -33,19 +36,33 @@ Route::prefix('/auth')->group(function () {
     });
 });
 
-// Rotas protegidas por autenticação
+// BFF - Autenticação (FAZ PROXY PARA O BACKEND - USE ESTAS ROTAS!)
+Route::prefix('/bff/auth')->group(function () {
+    Route::post('/cadastro', [BffAuthController::class, 'cadastro']);
+    Route::post('/login', [BffAuthController::class, 'login']);
+    Route::post('/validar-token', [BffAuthController::class, 'validarToken']);
+    Route::post('/logout', [BffAuthController::class, 'logout']);
+});
+
+// BFF - Rotas de Clientes (SEM autenticação Sanctum - o backend valida)
+// O frontend envia o token JWT do backend no header Authorization
+Route::prefix('/bff/clientes')->group(function () {
+    Route::get('/', [ClientesController::class, 'index']);
+    Route::get('/{id}', [ClientesController::class, 'show']);
+    Route::post('/', [ClientesController::class, 'store']);
+    Route::put('/{id}', [ClientesController::class, 'update']);
+});
+
+// BFF - Rotas de Frequências (Registro de treinos realizados)
+Route::prefix('/bff/frequencias')->group(function () {
+    Route::post('/', [FrequenciaController::class, 'store']);
+});
+
+// Rotas protegidas por autenticação Sanctum (antigas - manter por enquanto)
 Route::middleware('auth:sanctum')->group(function () {
 
     // Perfil - Agregação de dados (Cliente + Treinos + Pagamentos)
     Route::get('/bff/perfil/{clienteId}', [PerfilController::class, 'show']);
-
-    // Clientes
-    Route::prefix('/bff/clientes')->group(function () {
-        Route::get('/', [ClientesController::class, 'index']);
-        Route::get('/{id}', [ClientesController::class, 'show']);
-        Route::post('/', [ClientesController::class, 'store']);
-        Route::put('/{id}', [ClientesController::class, 'update']);
-    });
 
     // Treinos
     Route::prefix('/bff/treinos')->group(function () {

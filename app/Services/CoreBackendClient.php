@@ -17,26 +17,33 @@ class CoreBackendClient
     /**
      * Buscar cliente por ID
      */
-    public function getCliente(int $clienteId): ?array
+    public function getCliente(int $clienteId, ?string $token = null): ?array
     {
         try {
-            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
-                ->get("{$this->baseUrl}/api/clientes/{$clienteId}");
+                ->retry(2, 200);
+
+            // Adicionar token se fornecido
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->get("{$this->baseUrl}/api/clientes/{$clienteId}");
+
             Log::info('CoreBackendClient::getCliente response', [
                 'id' => $clienteId,
                 'status' => $response->status(),
                 'body_snippet' => substr($response->body(), 0, 200),
             ]);
-            
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? null;
             }
-            
+
             Log::warning("Falha ao buscar cliente {$clienteId}: {$response->status()}");
             return null;
         } catch (\Exception $e) {
@@ -48,25 +55,32 @@ class CoreBackendClient
     /**
      * Listar todos os clientes
      */
-    public function listarClientes(): array
+    public function listarClientes(?string $token = null): array
     {
         try {
-            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
-                ->get("{$this->baseUrl}/api/clientes");
+                ->retry(2, 200);
+
+            // Adicionar token se fornecido
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->get("{$this->baseUrl}/api/clientes");
+
             Log::info('CoreBackendClient::listarClientes response', [
                 'status' => $response->status(),
                 'body_snippet' => substr($response->body(), 0, 200),
             ]);
-            
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? [];
             }
-            
+
             Log::warning("Falha ao listar clientes: {$response->status()}");
             return [];
         } catch (\Exception $e) {
@@ -78,21 +92,27 @@ class CoreBackendClient
     /**
      * Criar cliente
      */
-    public function criarCliente(array $dados): ?array
+    public function criarCliente(array $dados, ?string $token = null): ?array
     {
         try {
-            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
-                ->post("{$this->baseUrl}/api/clientes", $dados);
-            
+                ->retry(2, 200);
+
+            // Adicionar token se fornecido
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->post("{$this->baseUrl}/api/clientes", $dados);
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? null;
             }
-            
+
             Log::warning("Falha ao criar cliente: {$response->status()}");
             return null;
         } catch (\Exception $e) {
@@ -104,21 +124,27 @@ class CoreBackendClient
     /**
      * Atualizar cliente
      */
-    public function atualizarCliente(int $clienteId, array $dados): ?array
+    public function atualizarCliente(int $clienteId, array $dados, ?string $token = null): ?array
     {
         try {
-            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
-                ->put("{$this->baseUrl}/api/clientes/{$clienteId}", $dados);
-            
+                ->retry(2, 200);
+
+            // Adicionar token se fornecido
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->put("{$this->baseUrl}/api/clientes/{$clienteId}", $dados);
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? null;
             }
-            
+
             Log::warning("Falha ao atualizar cliente {$clienteId}: {$response->status()}");
             return null;
         } catch (\Exception $e) {
@@ -208,21 +234,27 @@ class CoreBackendClient
     /**
      * Criar treino
      */
-    public function criarTreino(array $dados): ?array
+    public function criarTreino(array $dados, ?string $token = null): ?array
     {
         try {
-            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
-                ->post("{$this->baseUrl}/api/treinos", $dados);
-            
+                ->retry(2, 200);
+
+            // Adicionar token se fornecido
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->post("{$this->baseUrl}/api/treinos", $dados);
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? null;
             }
-            
+
             Log::warning("Falha ao criar treino: {$response->status()}");
             return null;
         } catch (\Exception $e) {
