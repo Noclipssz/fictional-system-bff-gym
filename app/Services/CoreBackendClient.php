@@ -15,114 +15,8 @@ class CoreBackendClient
     }
 
     /**
-     * Buscar cliente por ID
-     */
-    public function getCliente(int $clienteId, ?string $token = null): ?array
-    {
-        try {
-            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
-                ->acceptJson()
-                ->connectTimeout(3)
-                ->timeout(10)
-                ->retry(2, 200);
-
-            // Adicionar token se fornecido
-            if ($token) {
-                $request = $request->withToken($token);
-            }
-
-            $response = $request->get("{$this->baseUrl}/api/clientes/{$clienteId}");
-
-            Log::info('CoreBackendClient::getCliente response', [
-                'id' => $clienteId,
-                'status' => $response->status(),
-                'body_snippet' => substr($response->body(), 0, 200),
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return $data['data'] ?? null;
-            }
-
-            Log::warning("Falha ao buscar cliente {$clienteId}: {$response->status()}");
-            return null;
-        } catch (\Exception $e) {
-            Log::error("Erro ao buscar cliente {$clienteId}: {$e->getMessage()}");
-            return null;
-        }
-    }
-
-    /**
-     * Listar todos os clientes
-     */
-    public function listarClientes(?string $token = null): array
-    {
-        try {
-            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
-                ->acceptJson()
-                ->connectTimeout(3)
-                ->timeout(10)
-                ->retry(2, 200);
-
-            // Adicionar token se fornecido
-            if ($token) {
-                $request = $request->withToken($token);
-            }
-
-            $response = $request->get("{$this->baseUrl}/api/clientes");
-
-            Log::info('CoreBackendClient::listarClientes response', [
-                'status' => $response->status(),
-                'body_snippet' => substr($response->body(), 0, 200),
-            ]);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return $data['data'] ?? [];
-            }
-
-            Log::warning("Falha ao listar clientes: {$response->status()}");
-            return [];
-        } catch (\Exception $e) {
-            Log::error("Erro ao listar clientes: {$e->getMessage()}");
-            return [];
-        }
-    }
-
-    /**
-     * Criar cliente
-     */
-    public function criarCliente(array $dados, ?string $token = null): ?array
-    {
-        try {
-            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
-                ->acceptJson()
-                ->connectTimeout(3)
-                ->timeout(10)
-                ->retry(2, 200);
-
-            // Adicionar token se fornecido
-            if ($token) {
-                $request = $request->withToken($token);
-            }
-
-            $response = $request->post("{$this->baseUrl}/api/clientes", $dados);
-
-            if ($response->successful()) {
-                $data = $response->json();
-                return $data['data'] ?? null;
-            }
-
-            Log::warning("Falha ao criar cliente: {$response->status()}");
-            return null;
-        } catch (\Exception $e) {
-            Log::error("Erro ao criar cliente: {$e->getMessage()}");
-            return null;
-        }
-    }
-
-    /**
-     * Atualizar cliente
+     * Atualizar perfil do cliente
+     * IMPORTANTE: O backend valida que o usuário só pode atualizar o próprio perfil
      */
     public function atualizarCliente(int $clienteId, array $dados, ?string $token = null): ?array
     {
@@ -140,15 +34,21 @@ class CoreBackendClient
 
             $response = $request->put("{$this->baseUrl}/api/clientes/{$clienteId}", $dados);
 
+            Log::info('CoreBackendClient::atualizarCliente response', [
+                'id' => $clienteId,
+                'status' => $response->status(),
+                'body_snippet' => substr($response->body(), 0, 200),
+            ]);
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? null;
             }
 
-            Log::warning("Falha ao atualizar cliente {$clienteId}: {$response->status()}");
+            Log::warning("Falha ao atualizar perfil {$clienteId}: {$response->status()}");
             return null;
         } catch (\Exception $e) {
-            Log::error("Erro ao atualizar cliente {$clienteId}: {$e->getMessage()}");
+            Log::error("Erro ao atualizar perfil {$clienteId}: {$e->getMessage()}");
             return null;
         }
     }
@@ -401,7 +301,7 @@ class CoreBackendClient
     /**
      * Autenticar usuário no core backend
      */
-    public function autenticarUsuario(string $email, string $password): ?array
+    public function autenticarUsuario(string $emailOrUsername, string $password): ?array
     {
         try {
             $response = Http::withOptions(['force_ip_resolve' => 'v4'])
@@ -410,12 +310,12 @@ class CoreBackendClient
                 ->timeout(10)
                 ->retry(2, 200)
                 ->post("{$this->baseUrl}/api/auth/login", [
-                    'email' => $email,
+                    'username' => $emailOrUsername, // Backend Spring Boot usa 'username'
                     'password' => $password,
                 ]);
 
             Log::info('CoreBackendClient::autenticarUsuario response', [
-                'email' => $email,
+                'username' => $emailOrUsername,
                 'status' => $response->status(),
                 'body_snippet' => substr($response->body(), 0, 200),
             ]);
@@ -460,6 +360,37 @@ class CoreBackendClient
             return null;
         } catch (\Exception $e) {
             Log::error("Erro ao validar token: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Obter dados do usuário autenticado
+     */
+    public function obterUsuarioAutenticado(string $token): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->retry(2, 200)
+                ->get("{$this->baseUrl}/api/auth/me");
+
+            Log::info('CoreBackendClient::obterUsuarioAutenticado response', [
+                'status' => $response->status(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? $data;
+            }
+
+            Log::warning("Falha ao obter usuário autenticado: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao obter usuário autenticado: {$e->getMessage()}");
             return null;
         }
     }

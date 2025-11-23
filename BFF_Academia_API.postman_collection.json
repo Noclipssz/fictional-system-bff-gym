@@ -1,0 +1,620 @@
+{
+	"info": {
+		"_postman_id": "bff-academia-gym-api-2024",
+		"name": "BFF Academia Gym - API Collection",
+		"description": "Collection completa do BFF (Backend For Frontend) do Sistema de Academia\n\n## Como funciona o BFF\nO BFF faz proxy para o backend Spring Boot, facilitando a integração com o frontend.\n\n## Autenticação\nA maioria dos endpoints requer token JWT do backend. \n\n1. Faça login em `/api/bff/auth/login`\n2. O token é salvo automaticamente\n3. Use o token nos demais endpoints\n\n## Variáveis\n- `base_url`: http://localhost:8000\n- `token`: Seu JWT token do backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Autenticação",
+			"item": [
+				{
+					"name": "Cadastro - Novo Cliente",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data && response.data.token) {",
+									"    pm.collectionVariables.set('token', response.data.token);",
+									"    console.log('Token salvo automaticamente!');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"Carlos Pereira\",\n  \"username\": \"carlospereira\",\n  \"email\": \"carlos@email.com\",\n  \"senha\": \"senha789\",\n  \"telefone\": \"11966666666\",\n  \"cpf\": \"11122233344\",\n  \"endereco\": \"Rua das Flores, 100\",\n  \"dataNascimento\": \"1992-08-10\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/bff/auth/cadastro",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"auth",
+								"cadastro"
+							]
+						},
+						"description": "Registra um novo cliente no sistema via BFF (faz proxy para o backend)"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const response = pm.response.json();",
+									"if (response.success && response.data && response.data.token) {",
+									"    pm.collectionVariables.set('token', response.data.token);",
+									"    pm.collectionVariables.set('user_id', response.data.userId);",
+									"    console.log('Token e User ID salvos automaticamente!');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"joaosilva\",\n  \"senha\": \"senha123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/bff/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Faz login via BFF e retorna token JWT. O token é salvo automaticamente."
+					},
+					"response": []
+				},
+				{
+					"name": "Me - Usuário Atual",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Retorna informações do usuário autenticado via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Validar Token",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/auth/validar-token",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"auth",
+								"validar-token"
+							]
+						},
+						"description": "Valida se o token JWT ainda é válido"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Faz logout do usuário"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Perfil",
+			"item": [
+				{
+					"name": "Atualizar Meu Perfil",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nome\": \"João Silva Santos\",\n  \"telefone\": \"11977777777\",\n  \"cpf\": \"12345678900\",\n  \"endereco\": \"Rua Atualizada, 999\",\n  \"dataNascimento\": \"1990-01-15\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/bff/clientes/{{user_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"clientes",
+								"{{user_id}}"
+							]
+						},
+						"description": "Atualiza o perfil do usuário autenticado via BFF (faz proxy para o backend). IMPORTANTE: Você só pode atualizar seu próprio perfil. Use {{user_id}} obtido automaticamente do login."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Treinos",
+			"item": [
+				{
+					"name": "Listar Todos os Treinos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/treinos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"treinos"
+							]
+						},
+						"description": "Lista todos os treinos via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Treino por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/treinos/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"treinos",
+								"1"
+							]
+						},
+						"description": "Busca um treino específico pelo ID via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Treinos por Cliente",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/treinos/cliente/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"treinos",
+								"cliente",
+								"1"
+							]
+						},
+						"description": "Lista todos os treinos de um cliente específico via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Criar Treino",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clienteId\": 1,\n  \"titulo\": \"Treino de Costas\",\n  \"descricao\": \"Barra fixa 4x12, Remada curvada 4x10, Pulldown 3x15, Remada alta 3x12\",\n  \"nivel\": \"AVANCADO\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/bff/treinos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"treinos"
+							]
+						},
+						"description": "Cria um novo treino via BFF. Níveis: INICIANTE, INTERMEDIARIO, AVANCADO"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Pagamentos",
+			"item": [
+				{
+					"name": "Listar Todos os Pagamentos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/pagamentos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"pagamentos"
+							]
+						},
+						"description": "Lista todos os pagamentos via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Buscar Pagamento por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/pagamentos/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"pagamentos",
+								"1"
+							]
+						},
+						"description": "Busca um pagamento específico pelo ID via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Listar Pagamentos por Cliente",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/pagamentos/cliente/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"pagamentos",
+								"cliente",
+								"1"
+							]
+						},
+						"description": "Lista todos os pagamentos de um cliente específico via BFF"
+					},
+					"response": []
+				},
+				{
+					"name": "Registrar Pagamento",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clienteId\": 1,\n  \"valor\": 250.00,\n  \"metodo\": \"BOLETO\",\n  \"status\": \"PENDENTE\",\n  \"referenciaExterna\": \"BOL987654\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/bff/pagamentos",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"pagamentos"
+							]
+						},
+						"description": "Registra um pagamento via BFF. Métodos: PIX, CARTAO, BOLETO. Status: PENDENTE, APROVADO, FALHOU"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Extras",
+			"item": [
+				{
+					"name": "Perfil Completo do Cliente",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/bff/perfil/1",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"perfil",
+								"1"
+							]
+						},
+						"description": "Retorna perfil completo do cliente agregando dados de Cliente + Treinos + Pagamentos"
+					},
+					"response": []
+				},
+				{
+					"name": "Registrar Frequência",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"clienteId\": 1,\n  \"data\": \"2025-01-23\",\n  \"checkIn\": \"08:00:00\",\n  \"checkOut\": \"09:30:00\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/bff/frequencias",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"bff",
+								"frequencias"
+							]
+						},
+						"description": "Registra a frequência de um cliente na academia"
+					},
+					"response": []
+				},
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"health"
+							]
+						},
+						"description": "Verifica se o BFF está operacional"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

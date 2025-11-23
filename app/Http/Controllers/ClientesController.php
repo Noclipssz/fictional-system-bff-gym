@@ -17,135 +17,77 @@ class ClientesController extends Controller
     }
 
     /**
-     * Listar todos os clientes
-     */
-    public function index(Request $request): JsonResponse
-    {
-        // Obter token do header Authorization
-        $token = $request->bearerToken();
-
-        $clientes = $this->coreBackendClient->listarClientes($token);
-
-        Log::info('BFF ClientesController@index', [
-            'core_base_url' => config('services.core_backend.url'),
-            'clientes_count' => is_array($clientes) ? count($clientes) : null,
-            'has_token' => !empty($token),
-        ]);
-
-        $payload = [
-            'success' => true,
-            'data' => $clientes,
-            'message' => 'Lista de clientes obtida com sucesso',
-        ];
-
-        if (app()->environment('local') && $request->boolean('debug', false)) {
-            $payload['debug'] = [
-                'core_base_url' => config('services.core_backend.url'),
-                'count' => is_array($clientes) ? count($clientes) : null,
-            ];
-            if ($request->query('debug') === '2') {
-                $testUrl = rtrim(config('services.core_backend.url'), '/') . '/api/clientes';
-                $stream = @file_get_contents($testUrl);
-                $payload['debug']['stream_status'] = $stream !== false ? 'ok' : 'fail';
-                $payload['debug']['stream_snippet'] = $stream !== false ? substr($stream, 0, 200) : null;
-            }
-        }
-
-        return response()->json($payload);
-    }
-
-    /**
-     * Buscar cliente por ID
-     */
-    public function show(Request $request, int $id): JsonResponse
-    {
-        // Obter token do header Authorization
-        $token = $request->bearerToken();
-
-        $cliente = $this->coreBackendClient->getCliente($id, $token);
-
-        if (!$cliente) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cliente não encontrado',
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $cliente,
-            'message' => 'Cliente obtido com sucesso',
-        ]);
-    }
-
-    /**
-     * Criar novo cliente
-     */
-    public function store(Request $request): JsonResponse
-    {
-        $validated = $request->validate([
-            'nome' => 'required|string',
-            'email' => 'required|email',
-            'telefone' => 'required|string',
-            'cpf' => 'required|string',
-            'endereco' => 'required|string',
-            'dataNascimento' => 'required|date_format:Y-m-d',
-            'premium' => 'boolean',
-            'avatarDataUrl' => 'nullable|string',
-        ]);
-
-        // Obter token do header Authorization
-        $token = $request->bearerToken();
-
-        $cliente = $this->coreBackendClient->criarCliente($validated, $token);
-
-        if (!$cliente) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Falha ao criar cliente',
-            ], 400);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $cliente,
-            'message' => 'Cliente criado com sucesso',
-        ], 201);
-    }
-
-    /**
-     * Atualizar cliente
+     * Atualizar perfil do cliente
+     * IMPORTANTE: O backend valida que o usuário só pode atualizar o próprio perfil
      */
     public function update(Request $request, int $id): JsonResponse
     {
-        $validated = $request->validate([
-            'nome' => 'string',
-            'email' => 'email',
-            'telefone' => 'string',
-            'cpf' => 'string',
-            'endereco' => 'string',
-            'dataNascimento' => 'date_format:Y-m-d',
-            'premium' => 'boolean',
-            'premiumAte' => 'nullable|date_format:Y-m-d',
-            'avatarDataUrl' => 'nullable|string',
-        ]);
+        try {
+            // Validação dos dados de entrada
+            $validated = $request->validate([
+                'nome' => 'nullable|string|min:3|max:150',
+                'telefone' => 'nullable|string|max:30',
+                'cpf' => 'nullable|string|min:11|max:20',
+                'endereco' => 'nullable|string|max:255',
+                'dataNascimento' => 'nullable|date_format:Y-m-d|before:today',
+                'avatarDataUrl' => 'nullable|string',
+                'senha' => 'nullable|string|min:6',
+            ]);
 
-        // Obter token do header Authorization
-        $token = $request->bearerToken();
+            Log::info('BFF: Tentando atualizar perfil via backend', [
+                'clienteId' => $id,
+                'campos' => array_keys($validated),
+            ]);
 
-        $cliente = $this->coreBackendClient->atualizarCliente($id, $validated, $token);
+            // Obter token do header Authorization
+            $token = $request->bearerToken();
 
-        if (!$cliente) {
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token de autenticação não fornecido',
+                ], 401);
+            }
+
+            // Chamar o backend (que valida se o usuário pode atualizar este perfil)
+            $cliente = $this->coreBackendClient->atualizarCliente($id, $validated, $token);
+
+            if (!$cliente) {
+                Log::warning('BFF: Backend retornou null ao atualizar perfil');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Falha ao atualizar perfil',
+                ], 400);
+            }
+
+            Log::info('BFF: Perfil atualizado com sucesso via backend', [
+                'clienteId' => $cliente['id'] ?? null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $cliente,
+                'message' => 'Perfil atualizado com sucesso',
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Falha ao atualizar cliente',
-            ], 400);
-        }
+                'message' => 'Erro de validação',
+                'errors' => $e->errors(),
+            ], 422);
 
-        return response()->json([
-            'success' => true,
-            'data' => $cliente,
-            'message' => 'Cliente atualizado com sucesso',
-        ]);
+        } catch (\Exception $e) {
+            Log::error('BFF: Erro ao atualizar perfil', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao atualizar perfil',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
 }

@@ -40,16 +40,15 @@ Route::prefix('/auth')->group(function () {
 Route::prefix('/bff/auth')->group(function () {
     Route::post('/cadastro', [BffAuthController::class, 'cadastro']);
     Route::post('/login', [BffAuthController::class, 'login']);
+    Route::get('/me', [BffAuthController::class, 'me']);
     Route::post('/validar-token', [BffAuthController::class, 'validarToken']);
     Route::post('/logout', [BffAuthController::class, 'logout']);
 });
 
-// BFF - Rotas de Clientes (SEM autenticação Sanctum - o backend valida)
+// BFF - Rotas de Perfil (SEM autenticação Sanctum - o backend valida)
 // O frontend envia o token JWT do backend no header Authorization
+// IMPORTANTE: O backend valida que o usuário só pode atualizar o próprio perfil
 Route::prefix('/bff/clientes')->group(function () {
-    Route::get('/', [ClientesController::class, 'index']);
-    Route::get('/{id}', [ClientesController::class, 'show']);
-    Route::post('/', [ClientesController::class, 'store']);
     Route::put('/{id}', [ClientesController::class, 'update']);
 });
 
@@ -58,27 +57,27 @@ Route::prefix('/bff/frequencias')->group(function () {
     Route::post('/', [FrequenciaController::class, 'store']);
 });
 
+// BFF - Treinos (SEM autenticação Sanctum - o backend valida)
+Route::prefix('/bff/treinos')->group(function () {
+    Route::get('/', [TreinosController::class, 'index']);
+    Route::get('/{id}', [TreinosController::class, 'show']);
+    Route::get('/cliente/{clienteId}', [TreinosController::class, 'porCliente']);
+    Route::post('/', [TreinosController::class, 'store']);
+});
+
+// BFF - Pagamentos (SEM autenticação Sanctum - o backend valida)
+Route::prefix('/bff/pagamentos')->group(function () {
+    Route::get('/', [PagamentosController::class, 'index']);
+    Route::get('/{id}', [PagamentosController::class, 'show']);
+    Route::get('/cliente/{clienteId}', [PagamentosController::class, 'porCliente']);
+    Route::post('/', [PagamentosController::class, 'store']);
+});
+
 // Rotas protegidas por autenticação Sanctum (antigas - manter por enquanto)
 Route::middleware('auth:sanctum')->group(function () {
 
     // Perfil - Agregação de dados (Cliente + Treinos + Pagamentos)
     Route::get('/bff/perfil/{clienteId}', [PerfilController::class, 'show']);
-
-    // Treinos
-    Route::prefix('/bff/treinos')->group(function () {
-        Route::get('/', [TreinosController::class, 'index']);
-        Route::get('/{id}', [TreinosController::class, 'show']);
-        Route::get('/cliente/{clienteId}', [TreinosController::class, 'porCliente']);
-        Route::post('/', [TreinosController::class, 'store']);
-    });
-
-    // Pagamentos
-    Route::prefix('/bff/pagamentos')->group(function () {
-        Route::get('/', [PagamentosController::class, 'index']);
-        Route::get('/{id}', [PagamentosController::class, 'show']);
-        Route::get('/cliente/{clienteId}', [PagamentosController::class, 'porCliente']);
-        Route::post('/', [PagamentosController::class, 'store']);
-    });
 
     // Dados do usuário autenticado
     Route::get('/user', function (Request $request) {

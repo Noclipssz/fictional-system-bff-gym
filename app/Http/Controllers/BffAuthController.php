@@ -26,22 +26,25 @@ class BffAuthController extends Controller
         try {
             // Validação dos dados
             $validated = $request->validate([
-                'nome' => 'required|string|max:255',
-                'email' => 'required|email|max:255',
+                'nome' => 'required|string|min:3|max:150',
+                'username' => 'required|string|min:3|max:100',
+                'email' => 'required|email|max:150',
                 'senha' => 'required|string|min:6',
                 'telefone' => 'nullable|string|max:30',
-                'cpf' => 'nullable|string|max:20',
+                'cpf' => 'nullable|string|min:11|max:20',
                 'endereco' => 'nullable|string|max:255',
                 'dataNascimento' => 'nullable|date',
             ]);
 
             Log::info('BFF: Tentando cadastrar cliente via backend', [
+                'username' => $validated['username'],
                 'email' => $validated['email']
             ]);
 
-            // Mapear para o formato do backend (Spring Boot espera 'password' e 'nome')
+            // Mapear para o formato do backend (Spring Boot espera 'password', 'username' e 'nome')
             $dadosBackend = [
                 'nome' => $validated['nome'],
+                'username' => $validated['username'],
                 'email' => $validated['email'],
                 'password' => $validated['senha'], // Backend espera 'password'
                 'telefone' => $validated['telefone'] ?? null,
@@ -105,25 +108,27 @@ class BffAuthController extends Controller
     public function login(Request $request): JsonResponse
     {
         try {
-            // Validação dos dados
+            // Validação dos dados - aceita email OU username
             $validated = $request->validate([
-                'email' => 'required|email',
+                'email' => 'required|string', // Aceita email ou username
                 'senha' => 'required|string',
             ]);
 
+            $emailOrUsername = $validated['email'];
+
             Log::info('BFF: Tentando autenticar cliente via backend', [
-                'email' => $validated['email']
+                'credential' => $emailOrUsername
             ]);
 
             // Chamar o backend via CoreBackendClient
             $resultado = $this->coreBackendClient->autenticarUsuario(
-                $validated['email'],
-                $validated['senha'] // Passar 'senha' como password
+                $emailOrUsername, // Pode ser email ou username
+                $validated['senha']
             );
 
             if ($resultado === null) {
                 Log::warning('BFF: Falha ao autenticar cliente via backend', [
-                    'email' => $validated['email']
+                    'credential' => $emailOrUsername
                 ]);
 
                 return response()->json([
@@ -142,7 +147,7 @@ class BffAuthController extends Controller
                 'data' => [
                     'userId' => $resultado['userId'] ?? $resultado['id'] ?? null,
                     'nome' => $resultado['nome'] ?? $resultado['username'] ?? null,
-                    'email' => $resultado['email'] ?? $validated['email'],
+                    'email' => $resultado['email'] ?? $emailOrUsername,
                     'token' => $resultado['token'] ?? null,
                 ],
                 'message' => 'Login realizado com sucesso'
@@ -206,6 +211,58 @@ class BffAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Erro ao validar token'
+            ], 500);
+        }
+    }
+
+    /**
+     * Retorna dados do usuário autenticado
+     */
+    public function me(Request $request): JsonResponse
+    {
+        try {
+            $token = $request->bearerToken();
+
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token não fornecido'
+                ], 401);
+            }
+
+            Log::info('BFF: Buscando dados do usuário autenticado via backend');
+
+            // Chamar o backend via CoreBackendClient
+            $resultado = $this->coreBackendClient->obterUsuarioAutenticado($token);
+
+            if ($resultado === null) {
+                Log::warning('BFF: Token inválido ou usuário não encontrado');
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não autenticado'
+                ], 401);
+            }
+
+            Log::info('BFF: Dados do usuário obtidos com sucesso', [
+                'userId' => $resultado['id'] ?? null
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $resultado,
+                'message' => 'Usuário autenticado'
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('BFF: Erro ao buscar usuário autenticado', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao buscar usuário autenticado'
             ], 500);
         }
     }
