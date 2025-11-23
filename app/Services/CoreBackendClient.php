@@ -82,21 +82,27 @@ class CoreBackendClient
     /**
      * Listar treinos por cliente
      */
-    public function listarTreinosPorCliente(int $clienteId): array
+    public function listarTreinosPorCliente(int $clienteId, ?string $token = null): array
     {
         try {
-            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
-                ->get("{$this->baseUrl}/api/treinos/cliente/{$clienteId}");
-            
+                ->retry(2, 200);
+
+            // Adicionar token se fornecido
+            if ($token) {
+                $request = $request->withToken($token);
+            }
+
+            $response = $request->get("{$this->baseUrl}/api/treinos/cliente/{$clienteId}");
+
             if ($response->successful()) {
                 $data = $response->json();
                 return $data['data'] ?? [];
             }
-            
+
             Log::warning("Falha ao listar treinos do cliente {$clienteId}: {$response->status()}");
             return [];
         } catch (\Exception $e) {

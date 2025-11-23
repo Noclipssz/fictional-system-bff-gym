@@ -53,9 +53,12 @@ class TreinosController extends Controller
     /**
      * Listar treinos por cliente
      */
-    public function porCliente(int $clienteId): JsonResponse
+    public function porCliente(Request $request, int $clienteId): JsonResponse
     {
-        $treinos = $this->coreBackendClient->listarTreinosPorCliente($clienteId);
+        // Obter token do header Authorization
+        $token = $request->bearerToken();
+
+        $treinos = $this->coreBackendClient->listarTreinosPorCliente($clienteId, $token);
 
         return response()->json([
             'success' => true,

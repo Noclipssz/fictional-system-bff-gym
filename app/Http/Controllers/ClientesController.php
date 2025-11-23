@@ -49,8 +49,40 @@ class ClientesController extends Controller
                 ], 401);
             }
 
-            // Chamar o backend (que valida se o usuário pode atualizar este perfil)
-            $cliente = $this->coreBackendClient->atualizarCliente($id, $validated, $token);
+            // 1. Buscar dados atuais do cliente do backend
+            $clienteAtual = $this->coreBackendClient->obterUsuarioAutenticado($token);
+
+            if (!$clienteAtual) {
+                Log::warning('BFF: Não foi possível buscar dados do cliente');
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Não foi possível buscar dados do cliente',
+                ], 400);
+            }
+
+            // 2. Mesclar dados atuais com os novos (apenas campos enviados)
+            $dadosMesclados = [
+                'nome' => $validated['nome'] ?? $clienteAtual['nome'],
+                'username' => $clienteAtual['username'], // Nunca muda
+                'email' => $clienteAtual['email'], // Nunca muda
+                'telefone' => $validated['telefone'] ?? $clienteAtual['telefone'],
+                'cpf' => $validated['cpf'] ?? $clienteAtual['cpf'],
+                'endereco' => $validated['endereco'] ?? $clienteAtual['endereco'],
+                'dataNascimento' => $validated['dataNascimento'] ?? $clienteAtual['dataNascimento'],
+                'avatarDataUrl' => $validated['avatarDataUrl'] ?? $clienteAtual['avatarDataUrl'],
+            ];
+
+            // Se senha foi enviada, adicionar
+            if (isset($validated['senha'])) {
+                $dadosMesclados['password'] = $validated['senha'];
+            }
+
+            Log::info('BFF: Dados mesclados para enviar ao backend', [
+                'campos' => array_keys($dadosMesclados),
+            ]);
+
+            // 3. Chamar o backend (que valida se o usuário pode atualizar este perfil)
+            $cliente = $this->coreBackendClient->atualizarCliente($id, $dadosMesclados, $token);
 
             if (!$cliente) {
                 Log::warning('BFF: Backend retornou null ao atualizar perfil');
