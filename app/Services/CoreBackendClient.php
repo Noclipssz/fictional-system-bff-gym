@@ -25,7 +25,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200);
+                ;
 
             // Adicionar token se fornecido
             if ($token) {
@@ -63,7 +63,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/treinos/{$treinoId}");
             
             if ($response->successful()) {
@@ -89,7 +89,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200);
+                ;
 
             // Adicionar token se fornecido
             if ($token) {
@@ -121,7 +121,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/treinos");
             
             if ($response->successful()) {
@@ -147,7 +147,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200);
+                ;
 
             // Adicionar token se fornecido
             if ($token) {
@@ -179,7 +179,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/pagamentos/{$pagamentoId}");
             
             if ($response->successful()) {
@@ -205,7 +205,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/pagamentos/cliente/{$clienteId}");
             
             if ($response->successful()) {
@@ -231,7 +231,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/pagamentos");
             
             if ($response->successful()) {
@@ -257,7 +257,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->post("{$this->baseUrl}/api/pagamentos", $dados);
 
             if ($response->successful()) {
@@ -275,6 +275,7 @@ class CoreBackendClient
 
     /**
      * Registrar usuário no core backend
+     * @throws \Exception quando o registro falha com mensagem do backend
      */
     public function registrarUsuario(array $dados): ?array
     {
@@ -283,7 +284,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+
                 ->post("{$this->baseUrl}/api/auth/register", $dados);
 
             Log::info('CoreBackendClient::registrarUsuario response', [
@@ -296,11 +297,15 @@ class CoreBackendClient
                 return $data['data'] ?? $data;
             }
 
-            Log::warning("Falha ao registrar usuário: {$response->status()}");
-            return null;
-        } catch (\Exception $e) {
-            Log::error("Erro ao registrar usuário: {$e->getMessage()}");
-            return null;
+            // Extrair mensagem de erro do backend
+            $errorData = $response->json();
+            $errorMessage = $errorData['message'] ?? "Erro ao registrar usuário (status {$response->status()})";
+
+            Log::warning("Falha ao registrar usuário: {$response->status()} - {$errorMessage}");
+            throw new \Exception($errorMessage);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("Erro de conexão ao registrar usuário: {$e->getMessage()}");
+            throw new \Exception("Erro de conexão com o servidor");
         }
     }
 
@@ -314,7 +319,7 @@ class CoreBackendClient
                 ->acceptJson()
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->post("{$this->baseUrl}/api/auth/login", [
                     'username' => $emailOrUsername, // Backend Spring Boot usa 'username'
                     'password' => $password,
@@ -350,7 +355,7 @@ class CoreBackendClient
                 ->withToken($token)
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/auth/me");
 
             Log::info('CoreBackendClient::validarToken response', [
@@ -381,7 +386,7 @@ class CoreBackendClient
                 ->withToken($token)
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->get("{$this->baseUrl}/api/auth/me");
 
             Log::info('CoreBackendClient::obterUsuarioAutenticado response', [
@@ -412,7 +417,7 @@ class CoreBackendClient
                 ->withToken($token)
                 ->connectTimeout(3)
                 ->timeout(10)
-                ->retry(2, 200)
+                
                 ->post("{$this->baseUrl}/api/auth/logout");
 
             Log::info('CoreBackendClient::logoutUsuario response', [
@@ -422,6 +427,138 @@ class CoreBackendClient
             return $response->successful();
         } catch (\Exception $e) {
             Log::error("Erro ao fazer logout: {$e->getMessage()}");
+            return false;
+        }
+    }
+
+    /**
+     * Criar checkout premium no core backend
+     */
+    public function criarCheckoutPremium(string $token): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(5)
+                ->timeout(30)
+                ->post("{$this->baseUrl}/api/premium/checkout");
+
+            Log::info('CoreBackendClient::criarCheckoutPremium response', [
+                'status' => $response->status(),
+                'body_snippet' => substr($response->body(), 0, 300),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? null;
+            }
+
+            Log::warning("Falha ao criar checkout premium: {$response->status()} - {$response->body()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao criar checkout premium: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Processar webhook premium no core backend
+     */
+    public function processarWebhookPremium(array $payload, ?string $signature, ?string $webhookSecret): bool
+    {
+        try {
+            $url = "{$this->baseUrl}/api/premium/webhook";
+
+            // Adicionar webhookSecret como query param se fornecido
+            if ($webhookSecret) {
+                $url .= "?webhookSecret=" . urlencode($webhookSecret);
+            }
+
+            $request = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(30);
+
+            // Adicionar header de assinatura se fornecido
+            if ($signature) {
+                $request = $request->withHeaders([
+                    'X-Webhook-Signature' => $signature,
+                ]);
+            }
+
+            $response = $request->post($url, $payload);
+
+            Log::info('CoreBackendClient::processarWebhookPremium response', [
+                'status' => $response->status(),
+            ]);
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error("Erro ao processar webhook premium: {$e->getMessage()}");
+            return false;
+        }
+    }
+
+    /**
+     * Ativar/desativar premium para um cliente (desenvolvimento/testes)
+     */
+    public function ativarPremium(int $clienteId, bool $ativar = true, int $meses = 1): ?array
+    {
+        try {
+            $url = "{$this->baseUrl}/api/clientes/{$clienteId}/premium";
+            $url .= "?ativar=" . ($ativar ? 'true' : 'false');
+            $url .= "&meses={$meses}";
+
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->post($url);
+
+            Log::info('CoreBackendClient::ativarPremium response', [
+                'clienteId' => $clienteId,
+                'ativar' => $ativar,
+                'status' => $response->status(),
+            ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? null;
+            }
+
+            Log::warning("Falha ao ativar premium: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao ativar premium: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Alterar senha do cliente
+     */
+    public function alterarSenha(int $clienteId, string $senhaAtual, string $novaSenha, string $token): bool
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->put("{$this->baseUrl}/api/clientes/{$clienteId}/senha", [
+                    'senhaAtual' => $senhaAtual,
+                    'novaSenha' => $novaSenha,
+                ]);
+
+            Log::info('CoreBackendClient::alterarSenha response', [
+                'clienteId' => $clienteId,
+                'status' => $response->status(),
+            ]);
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error("Erro ao alterar senha: {$e->getMessage()}");
             return false;
         }
     }

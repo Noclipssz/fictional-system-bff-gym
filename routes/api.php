@@ -7,6 +7,7 @@ use App\Http\Controllers\TreinosController;
 use App\Http\Controllers\PagamentosController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\FrequenciaController;
+use App\Http\Controllers\PremiumController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,10 @@ Route::prefix('/bff/auth')->group(function () {
 // IMPORTANTE: O backend valida que o usuário só pode atualizar o próprio perfil
 Route::prefix('/bff/clientes')->group(function () {
     Route::put('/{id}', [ClientesController::class, 'update']);
+    // Rota de desenvolvimento para ativar premium manualmente
+    Route::post('/{id}/premium', [ClientesController::class, 'ativarPremium']);
+    // Alterar senha
+    Route::put('/{id}/senha', [ClientesController::class, 'alterarSenha']);
 });
 
 // BFF - Rotas de Frequências (Registro de treinos realizados)
@@ -71,6 +76,14 @@ Route::prefix('/bff/pagamentos')->group(function () {
     Route::get('/{id}', [PagamentosController::class, 'show']);
     Route::get('/cliente/{clienteId}', [PagamentosController::class, 'porCliente']);
     Route::post('/', [PagamentosController::class, 'store']);
+});
+
+// BFF - Premium (Assinatura via AbacatePay)
+// checkout: requer JWT no header Authorization
+// webhook: público, validado pelo core via secret
+Route::prefix('/bff/premium')->group(function () {
+    Route::post('/checkout', [PremiumController::class, 'checkout']);
+    Route::post('/webhook', [PremiumController::class, 'webhook']);
 });
 
 // Rotas protegidas por autenticação Sanctum (antigas - manter por enquanto)

@@ -29,7 +29,7 @@ class BffAuthController extends Controller
                 'nome' => 'required|string|min:3|max:150',
                 'username' => 'required|string|min:3|max:100',
                 'email' => 'required|email|max:150',
-                'senha' => 'required|string|min:6',
+                'senha' => 'required|string|min:8',
                 'telefone' => 'nullable|string|max:30',
                 'cpf' => 'nullable|string|min:11|max:20',
                 'endereco' => 'nullable|string|max:255',
@@ -89,15 +89,14 @@ class BffAuthController extends Controller
 
         } catch (\Exception $e) {
             Log::error('BFF: Erro ao cadastrar cliente', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error' => $e->getMessage()
             ]);
 
+            // Retornar a mensagem de erro do backend para o usuário
             return response()->json([
                 'success' => false,
-                'message' => 'Erro ao cadastrar cliente',
-                'error' => $e->getMessage()
-            ], 500);
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 

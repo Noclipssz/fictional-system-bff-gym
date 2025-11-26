@@ -122,4 +122,108 @@ class ClientesController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Ativar/desativar premium (apenas para desenvolvimento/testes)
+     */
+    public function ativarPremium(Request $request, int $id): JsonResponse
+    {
+        try {
+            $ativar = $request->query('ativar', 'true') === 'true';
+            $meses = (int) $request->query('meses', 1);
+
+            Log::info('BFF: Ativando premium', [
+                'clienteId' => $id,
+                'ativar' => $ativar,
+                'meses' => $meses,
+            ]);
+
+            $result = $this->coreBackendClient->ativarPremium($id, $ativar, $meses);
+
+            if (!$result) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Falha ao ativar premium',
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'message' => $ativar ? 'Premium ativado com sucesso' : 'Premium desativado',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('BFF: Erro ao ativar premium', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao ativar premium: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Alterar senha do cliente
+     */
+    public function alterarSenha(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'senhaAtual' => 'required|string',
+                'novaSenha' => 'required|string|min:8',
+            ]);
+
+            Log::info('BFF: Tentando alterar senha', ['clienteId' => $id]);
+
+            $token = $request->bearerToken();
+
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token de autenticação não fornecido',
+                ], 401);
+            }
+
+            $result = $this->coreBackendClient->alterarSenha(
+                $id,
+                $validated['senhaAtual'],
+                $validated['novaSenha'],
+                $token
+            );
+
+            if (!$result) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Senha atual incorreta',
+                ], 400);
+            }
+
+            Log::info('BFF: Senha alterada com sucesso', ['clienteId' => $id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Senha alterada com sucesso',
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro de validação',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('BFF: Erro ao alterar senha', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao alterar senha: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
