@@ -226,4 +226,54 @@ class ClientesController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Excluir conta do cliente
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'senha' => 'required|string',
+            ]);
+
+            Log::info('BFF: Tentando excluir conta', ['clienteId' => $id]);
+
+            $token = $request->bearerToken();
+
+            if (!$token) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Token de autenticação não fornecido',
+                ], 401);
+            }
+
+            $this->coreBackendClient->excluirConta($id, $validated['senha'], $token);
+
+            Log::info('BFF: Conta excluída com sucesso', ['clienteId' => $id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Conta excluída com sucesso',
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Senha é obrigatória',
+                'errors' => $e->errors(),
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('BFF: Erro ao excluir conta', [
+                'clienteId' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 400);
+        }
+    }
 }

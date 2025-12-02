@@ -717,4 +717,42 @@ class CoreBackendClient
             return null;
         }
     }
+
+    /**
+     * Excluir conta do cliente
+     * @throws \Exception quando a exclusão falha
+     */
+    public function excluirConta(int $clienteId, string $senha, string $token): bool
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->asJson()
+                ->withToken($token)
+                ->connectTimeout(5)
+                ->timeout(30)
+                ->delete("{$this->baseUrl}/api/clientes/{$clienteId}", [
+                    'senha' => $senha,
+                ]);
+
+            Log::info('CoreBackendClient::excluirConta response', [
+                'clienteId' => $clienteId,
+                'status' => $response->status(),
+            ]);
+
+            if ($response->successful()) {
+                return true;
+            }
+
+            // Extrair mensagem de erro do backend
+            $errorData = $response->json();
+            $errorMessage = $errorData['message'] ?? "Erro ao excluir conta (status {$response->status()})";
+
+            Log::warning("Falha ao excluir conta: {$response->status()} - {$errorMessage}");
+            throw new \Exception($errorMessage);
+        } catch (\Illuminate\Http\Client\ConnectionException $e) {
+            Log::error("Erro de conexão ao excluir conta: {$e->getMessage()}");
+            throw new \Exception("Erro de conexão com o servidor");
+        }
+    }
 }

@@ -56,6 +56,8 @@ Route::prefix('/bff/clientes')->group(function () {
     Route::post('/{id}/premium', [ClientesController::class, 'ativarPremium']);
     // Alterar senha
     Route::put('/{id}/senha', [ClientesController::class, 'alterarSenha']);
+    // Excluir conta
+    Route::delete('/{id}', [ClientesController::class, 'destroy']);
 });
 
 // BFF - Rotas de Frequências (Registro de treinos realizados)
