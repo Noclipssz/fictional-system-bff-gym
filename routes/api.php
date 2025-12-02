@@ -8,6 +8,7 @@ use App\Http\Controllers\PagamentosController;
 use App\Http\Controllers\PerfilController;
 use App\Http\Controllers\FrequenciaController;
 use App\Http\Controllers\PremiumController;
+use App\Http\Controllers\ChatController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -84,6 +85,18 @@ Route::prefix('/bff/pagamentos')->group(function () {
 Route::prefix('/bff/premium')->group(function () {
     Route::post('/checkout', [PremiumController::class, 'checkout']);
     Route::post('/webhook', [PremiumController::class, 'webhook']);
+});
+
+// BFF - Chat (requer JWT no header Authorization)
+// Apenas para operações REST (histórico, conversas)
+// WebSocket vai direto para o backend Java
+Route::prefix('/bff/chat')->group(function () {
+    Route::get('/conversas', [ChatController::class, 'listarConversas']);
+    Route::get('/conversas/{conversaId}/mensagens', [ChatController::class, 'buscarMensagens']);
+    Route::post('/conversas/iniciar/{outroUsuarioId}', [ChatController::class, 'iniciarConversa']);
+    Route::post('/conversas/{conversaId}/lidas', [ChatController::class, 'marcarComoLidas']);
+    Route::get('/usuarios', [ChatController::class, 'listarUsuarios']);
+    Route::get('/usuarios/online', [ChatController::class, 'listarUsuariosOnline']);
 });
 
 // Rotas protegidas por autenticação Sanctum (antigas - manter por enquanto)

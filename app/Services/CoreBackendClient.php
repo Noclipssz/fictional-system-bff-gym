@@ -562,4 +562,159 @@ class CoreBackendClient
             return false;
         }
     }
+
+    // ==================== MÉTODOS DO CHAT ====================
+
+    /**
+     * Buscar conversas do usuário
+     */
+    public function getChatConversas(string $token): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->get("{$this->baseUrl}/api/chat/conversas");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? [];
+            }
+
+            Log::warning("Falha ao buscar conversas: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao buscar conversas: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Buscar mensagens de uma conversa
+     */
+    public function getChatMensagens(string $token, int $conversaId, int $page = 0, int $size = 50): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->get("{$this->baseUrl}/api/chat/conversas/{$conversaId}/mensagens", [
+                    'page' => $page,
+                    'size' => $size,
+                ]);
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? [];
+            }
+
+            Log::warning("Falha ao buscar mensagens: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao buscar mensagens: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Iniciar conversa com outro usuário
+     */
+    public function iniciarConversa(string $token, int $outroUsuarioId): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->post("{$this->baseUrl}/api/chat/conversas/iniciar/{$outroUsuarioId}");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? null;
+            }
+
+            Log::warning("Falha ao iniciar conversa: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao iniciar conversa: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Marcar mensagens como lidas
+     */
+    public function marcarMensagensComoLidas(string $token, int $conversaId): bool
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->post("{$this->baseUrl}/api/chat/conversas/{$conversaId}/lidas");
+
+            return $response->successful();
+        } catch (\Exception $e) {
+            Log::error("Erro ao marcar mensagens: {$e->getMessage()}");
+            return false;
+        }
+    }
+
+    /**
+     * Listar usuários Premium disponíveis para chat
+     */
+    public function getChatUsuarios(string $token): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->get("{$this->baseUrl}/api/chat/usuarios");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? [];
+            }
+
+            Log::warning("Falha ao buscar usuários: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao buscar usuários: {$e->getMessage()}");
+            return null;
+        }
+    }
+
+    /**
+     * Listar usuários online
+     */
+    public function getChatUsuariosOnline(string $token): ?array
+    {
+        try {
+            $response = Http::withOptions(['force_ip_resolve' => 'v4'])
+                ->acceptJson()
+                ->withToken($token)
+                ->connectTimeout(3)
+                ->timeout(10)
+                ->get("{$this->baseUrl}/api/chat/usuarios/online");
+
+            if ($response->successful()) {
+                $data = $response->json();
+                return $data['data'] ?? [];
+            }
+
+            Log::warning("Falha ao buscar usuários online: {$response->status()}");
+            return null;
+        } catch (\Exception $e) {
+            Log::error("Erro ao buscar usuários online: {$e->getMessage()}");
+            return null;
+        }
+    }
 }
