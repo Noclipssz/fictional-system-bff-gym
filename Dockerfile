@@ -31,8 +31,6 @@ RUN php artisan config:clear \
     && php artisan route:clear \
     && php artisan view:clear
 
-# Expor porta
-EXPOSE 8080
-
-# Comando para iniciar
-CMD ["/bin/sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
+# Comando para iniciar - usa shell para expandir $PORT
+ENTRYPOINT []
+CMD sh -c "php artisan serve --host=0.0.0.0 --port=\${PORT:-80}"
