@@ -31,8 +31,8 @@ RUN php artisan config:clear \
     && php artisan route:clear \
     && php artisan view:clear
 
-# Expor porta (Railway usa variável PORT)
+# Expor porta
 EXPOSE 8080
 
-# Comando para iniciar (usa a porta do Railway ou 8080 como padrão)
-CMD php artisan serve --host=0.0.0.0 --port=${PORT:-8080}
+# Comando para iniciar
+CMD ["/bin/sh", "-c", "php artisan serve --host=0.0.0.0 --port=${PORT:-8080}"]
